@@ -1,5 +1,7 @@
 import csv
 import sys
+import requests
+from pathlib import Path
 
 test_request = {
     "table": "A",
@@ -35,10 +37,20 @@ VALID_CURRENCIES = {
 def main():
     try:
         currency = validate_symbol(input("Currency: "))
+        symbol = currency.lower()
+        response = fetch_data(symbol)
+        record = parse_rate(response)
+
+        path = Path("history.csv")
+        save_to_csv(path, record)
+
     except ValueError:
         sys.exit("Not valid currency.")
 
-    print(currency)
+    except requests.RequestException:
+        sys.exit("Network error.")
+
+    print(record)
 
 
 def validate_symbol(currency):
@@ -68,6 +80,12 @@ def save_to_csv(path, record):
             writer.writeheader()
 
         writer.writerow(record)
+
+def fetch_data(symbol):
+        response = requests.get(f"https://api.nbp.pl/api/exchangerates/rates/a/{symbol}/?format=json", timeout=5)
+        response.raise_for_status()
+        return response.json()
+    
 
 if __name__ == "__main__":
     main()

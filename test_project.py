@@ -14,7 +14,7 @@ def test_validate_symbol():
     assert validate_symbol("usd") == "USD"
 
 
-def test_validate_symbol_wrong_rates():
+def test_validate_symbol_invalid():
     with pytest.raises(ValueError):
         validate_symbol("eru")
 
@@ -35,19 +35,25 @@ def test_parse_rate_missing_rates():
 def test_save_to_csv(tmp_path):
     path = tmp_path / "history.csv"
 
-    record = {
+    first = {
         "code": "USD",
         "rate": 3.8175,
         "date": "2026-09-23",
     }
 
-    save_to_csv(path, record)
+    second = {
+        "code": "EUR",
+        "rate": 4.02,
+        "date": "2026-09-24",
+    }
+
+    save_to_csv(path, first)
+    save_to_csv(path, second)
 
     with open(path) as file:
         rows = list(csv.DictReader(file))
 
-    assert rows == [{
-        "code": "USD",
-        "rate": 3.8175,
-        "date": "2026-09-23",
-    }]
+    assert len(rows) == 2
+    assert rows[0]["code"] == "USD"
+    assert rows[1]["code"] == "EUR"
+
