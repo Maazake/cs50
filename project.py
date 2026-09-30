@@ -1,3 +1,5 @@
+# Used Claude.ai to help clean up code style and reword the README. Code logic is mine.
+
 import csv
 import sys
 from pathlib import Path
