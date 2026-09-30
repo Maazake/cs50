@@ -1,5 +1,4 @@
 # NBP Currency Rate History
-#### Video Demo: https://youtu.be/eAKtbs4x4N4
 #### Description:
 
 This is my final project for CS50's Introduction to Programming with Python. It's a small command-line tool that checks the current exchange rate for a currency (like USD or EUR) using the National Bank of Poland (NBP) API, and saves the result to a CSV file so I can build up a little history over time.
