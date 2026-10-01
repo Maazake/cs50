@@ -1,5 +1,3 @@
-# Used Claude.ai to help clean up code style and reword the README. Code logic is mine.
-
 import csv
 import sys
 from pathlib import Path
@@ -49,7 +47,7 @@ def main():
     print(record)
 
 
-def validate_symbol(currency):
+def validate_symbol(currency: str) -> str:
     currency = currency.strip().upper()
 
     if currency not in VALID_CURRENCIES:
@@ -58,7 +56,7 @@ def validate_symbol(currency):
     return currency
 
 
-def parse_rate(data):
+def parse_rate(data: dict) -> dict:
     code = data["code"]
     rate = data["rates"][0]["mid"]
     date = data["rates"][0]["effectiveDate"]
@@ -66,7 +64,7 @@ def parse_rate(data):
     return {"code": code, "rate": rate, "date": date}
 
 
-def save_to_csv(path, record):
+def save_to_csv(path: Path, record: dict) -> None:
     file_exists = path.exists()
 
     with open(path, "a", newline="") as file:
@@ -78,8 +76,10 @@ def save_to_csv(path, record):
         writer.writerow(record)
 
 
-def fetch_data(symbol):
-    response = requests.get(f"https://api.nbp.pl/api/exchangerates/rates/a/{symbol}/?format=json", timeout=5)
+def fetch_data(symbol: str) -> dict:
+    response = requests.get(
+        f"https://api.nbp.pl/api/exchangerates/rates/a/{symbol}/?format=json", timeout=5
+    )
     response.raise_for_status()
     return response.json()
 

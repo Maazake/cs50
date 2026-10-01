@@ -1,6 +1,10 @@
-import pytest
 import csv
-from project import parse_rate, save_to_csv, validate_symbol
+from unittest.mock import Mock
+
+import pytest
+import requests
+
+from project import fetch_data, parse_rate, save_to_csv, validate_symbol
 
 test_request = {
     "table": "A",
@@ -10,13 +14,17 @@ test_request = {
 }
 
 
-def test_validate_symbol():
-    assert validate_symbol("usd") == "USD"
+@pytest.mark.parametrize(
+    "currency, expected", [("usd", "USD"), ("eur", "EUR"), (" gbp   ", "GBP")]
+)
+def test_validate_symbol(currency, expected):
+    assert validate_symbol(currency) == expected
 
 
-def test_validate_symbol_invalid():
+@pytest.mark.parametrize("bad_currency", ["cat", "123", "US"])
+def test_validate_symbol_invalid(bad_currency):
     with pytest.raises(ValueError):
-        validate_symbol("eru")
+        validate_symbol(bad_currency)
 
 
 def test_parse_rate():
@@ -57,3 +65,29 @@ def test_save_to_csv(tmp_path):
     assert rows[0]["code"] == "USD"
     assert rows[1]["code"] == "EUR"
 
+
+def test_fetch_data(monkeypatch):
+    fake_response = Mock()
+
+    fake_response.json.return_value = {
+        "code": "USD",
+        "rates": [
+            {"no": "185/A/NBP/2026", "effectiveDate": "2026-09-23", "mid": 3.8175}
+        ],
+    }
+
+    monkeypatch.setattr("project.requests.get", lambda url, timeout: fake_response)
+
+    result = fetch_data("usd")
+
+    assert result["code"] == "USD"
+
+
+def test_fetch_data_network_error(monkeypatch):
+    def fake_get(url, timeout):
+        raise requests.ConnectionError
+
+    monkeypatch.setattr("project.requests.get", fake_get)
+
+    with pytest.raises(requests.RequestException):
+        fetch_data("usd")
