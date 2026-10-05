@@ -1,7 +1,5 @@
-import csv
 import sys
-from pathlib import Path
-
+import psycopg2
 import requests
 
 VALID_CURRENCIES = {
@@ -35,11 +33,15 @@ def main():
         response = fetch_data(symbol)
         record = parse_rate(response)
 
-        path = Path("history.csv")
-        save_to_csv(path, record)
-
+        connection = psycopg2.connect("dbname=nbp_tracker user=mazake")
+        save_to_postgres(connection, record)
+        connection.close()
+        
     except requests.RequestException:
         sys.exit("Network error.")
+
+    except psycopg2.Error:
+        sys.exit("Database error.")
 
     except ValueError:
         sys.exit("Not valid currency.")
@@ -63,17 +65,13 @@ def parse_rate(data: dict) -> dict:
 
     return {"code": code, "rate": rate, "date": date}
 
-
-def save_to_csv(path: Path, record: dict) -> None:
-    file_exists = path.exists()
-
-    with open(path, "a", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=["code", "rate", "date"])
-
-        if not file_exists:
-            writer.writeheader()
-
-        writer.writerow(record)
+def save_to_postgres(connection, record: dict) -> None:
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "INSERT INTO rates (code, rate, date) VALUES (%s, %s, %s)",
+            (record["code"], record["rate"], record["date"])
+        )
+    connection.commit()
 
 
 def fetch_data(symbol: str) -> dict:

@@ -1,10 +1,10 @@
-import csv
 from unittest.mock import Mock
 
 import pytest
 import requests
+import psycopg2
 
-from project import fetch_data, parse_rate, save_to_csv, validate_symbol
+from project import fetch_data, parse_rate, save_to_postgres, validate_symbol
 
 test_request = {
     "table": "A",
@@ -39,32 +39,25 @@ def test_parse_rate_missing_rates():
     with pytest.raises(KeyError):
         parse_rate({"code": "USD"})
 
+import psycopg2
 
-def test_save_to_csv(tmp_path):
-    path = tmp_path / "history.csv"
+@pytest.fixture
+def test_connection():
+    conn = psycopg2.connect("dbname=nbp_tracker user=mazake")
+    yield conn
+    conn.rollback()
+    conn.close()
 
-    first = {
-        "code": "USD",
-        "rate": 3.8175,
-        "date": "2026-09-23",
-    }
 
-    second = {
-        "code": "EUR",
-        "rate": 4.02,
-        "date": "2026-09-24",
-    }
+def test_save_to_postgres(test_connection):
+    record = {"code": "USD", "rate": 3.8175, "date": "2026-09-23"}
+    save_to_postgres(test_connection, record)
 
-    save_to_csv(path, first)
-    save_to_csv(path, second)
+    with test_connection.cursor() as cursor:
+        cursor.execute("SELECT code FROM rates WHERE code = 'USD'")
+        result = cursor.fetchone()
 
-    with open(path) as file:
-        rows = list(csv.DictReader(file))
-
-    assert len(rows) == 2
-    assert rows[0]["code"] == "USD"
-    assert rows[1]["code"] == "EUR"
-
+    assert result[0] == "USD"
 
 def test_fetch_data(monkeypatch):
     fake_response = Mock()
